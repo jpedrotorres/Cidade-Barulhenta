@@ -1,5 +1,7 @@
 import tkinter as tk
+from tkinter import ttk
 from tkinter import messagebox
+from tkinter import scrolledtext
 import datetime
 import time
 
@@ -68,7 +70,7 @@ class TelaProjeto:
 
 		self.project_menu=tk.Menu(self.menu, tearoff=0)
 		self.menu.add_cascade(label="Projeto", menu=self.project_menu)
-		self.project_menu.add_command(label="Novo", command=self.donothing)
+		self.project_menu.add_command(label="Novo", command=self.new_project_display)
 		self.project_menu.add_command(label="Iniciar", command=self.init_stream_gui)
 		self.project_menu.add_command(label="Encerrar", command=self.stop_stream_gui)
 		self.project_menu.add_separator()
@@ -76,7 +78,7 @@ class TelaProjeto:
 
 		self.config_menu=tk.Menu(self.menu, tearoff=0)
 		self.menu.add_cascade(label="Configuração", menu=self.config_menu)
-		self.config_menu.add_command(label="Tempo de contagem", command=self.donothing)
+		self.config_menu.add_command(label="Tempo de contagem", command=self.screen_time_config)
 
 		self.help_menu=tk.Menu(self.menu, tearoff=0)
 		self.menu.add_cascade(label="Ajuda", menu=self.help_menu)
@@ -104,7 +106,7 @@ class TelaProjeto:
 		self.entry_name_material=tk.Entry(self.frame_material, textvariable=self.name_material_var)
 		self.entry_name_material.pack()
 		tk.Button(self.frame_material, text="Adicionar", command=self.donothing).pack()
-		self.log_text=tk.Text(self.frame_material, height=5, width=20)
+		self.log_text=tk.scrolledtext.ScrolledText(self.frame_material, height=5, width=20, state=tk.DISABLED)
 		self.log_text.pack()
 
 		self.frame_list_material=tk.Frame(self.root, bd=2, relief="groove", padx=10, pady=10)
@@ -125,11 +127,25 @@ class TelaProjeto:
 			self.som.stop_stream()
 
 	def update_dbfs_display(self):
-		current_dbfs= self.som.current_dbfs
-		if current_dbfs != -999:
+		current_dbfs=self.som.current_dbfs
+		if current_dbfs!=-999:
 			self.lb_current_dbfs.config(text=f"dBFS Atual: {current_dbfs:.2f} dBFS")
 
 		self.root.after(100, self.update_dbfs_display)
+
+	def new_project_display(self):
+		pass
+
+	def screen_time_config(self):
+		window=tk.Toplevel(self.root)
+		window.title("Tempo Medida")
+
+		tk.Label(window, text="Tempo de duração das medidas").pack()
+		value_scale=tk.Scale(window, from_=1, to=10, orient=tk.HORIZONTAL)
+		value_scale.pack()
+		#variable=self.time_count_var
+
+		tk.Button(window, text="Alterar", command=self.donothing).pack()
 
 	def donothing(self):
 		pass
