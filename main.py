@@ -70,7 +70,7 @@ class TelaProjeto:
 
 		self.project_menu=tk.Menu(self.menu, tearoff=0)
 		self.menu.add_cascade(label="Projeto", menu=self.project_menu)
-		self.project_menu.add_command(label="Novo", command=self.new_project_display)
+		self.project_menu.add_command(label="Novo", command=self.confirm_new_project)
 		self.project_menu.add_command(label="Iniciar", command=self.init_stream_gui)
 		self.project_menu.add_command(label="Encerrar", command=self.stop_stream_gui)
 		self.project_menu.add_separator()
@@ -122,30 +122,76 @@ class TelaProjeto:
 		self.audio_thread.start()
 		self.update_dbfs_display()
 
+		self.log_text["state"]= tk.NORMAL
+		self.log_text.insert(tk.END, "Iniciando stream de áudio...\n")
+		self.log_text["state"]= tk.DISABLED
+
 	def stop_stream_gui(self):
 		if self.som.is_measuring:
 			self.som.stop_stream()
+			self.log_text["state"]= tk.NORMAL
+			self.log_text.insert(tk.END, "Encerrando stream de áudio...\n")
+			self.log_text["state"]= tk.DISABLED
+
+		else:
+			self.log_text["state"]= tk.NORMAL
+			self.log_text.insert(tk.END, "O stream não está ligado...\n")
+			self.log_text["state"]= tk.DISABLED
 
 	def update_dbfs_display(self):
-		current_dbfs=self.som.current_dbfs
-		if current_dbfs!=-999:
-			self.lb_current_dbfs.config(text=f"dBFS Atual: {current_dbfs:.2f} dBFS")
+		if self.som.is_measuring:
+			current_dbfs=self.som.current_dbfs
+			if current_dbfs!=-999:
+				self.lb_current_dbfs.config(text=f"dBFS Atual: {current_dbfs:.2f} dBFS")
 
 		self.root.after(100, self.update_dbfs_display)
 
 	def new_project_display(self):
-		pass
+		if self.som.stream:
+			self.som.stop_stream()
+		self.lb_current_dbfs.config(text="dBFS Atual: -")
+
+		self.log_text["state"]= tk.NORMAL
+		self.log_text.delete(1.0, tk.END)
+		self.log_text["state"]= tk.DISABLED
+
+	def confirm_new_project(self):
+		confirm=tk.messagebox.askyesno("Novo Projeto", "Deseja iniciar um novo projeto?")
+
+		if confirm:
+			self.new_project_display()
 
 	def screen_time_config(self):
 		window=tk.Toplevel(self.root)
 		window.title("Tempo Medida")
+		window.transient(self.root)
+		window.grab_set()
+
+		self.time_history_var= self.time_count_var.get()
 
 		tk.Label(window, text="Tempo de duração das medidas").pack()
-		value_scale=tk.Scale(window, from_=1, to=10, orient=tk.HORIZONTAL)
-		value_scale.pack()
-		#variable=self.time_count_var
+		tk.Scale(window, variable=self.time_count_var, from_=1, to=10, orient=tk.HORIZONTAL).pack()
 
-		tk.Button(window, text="Alterar", command=self.donothing).pack()
+		tk.Button(window, text="Alterar", command= lambda: self.confirm_alter_time(window)).pack()
+
+	def confirm_alter_time(self, window):
+		if self.time_count_var.get()==self.time_history_var:
+			tk.messagebox.showwarning("Aviso", "Valor igual ao original")
+			return
+
+		confirm=tk.messagebox.askyesno("Confimação", f"Deseja alterar o tempo de duração da medida de {self.time_history_var} s para {self.time_count_var.get()} s?")
+
+		if confirm:
+			tk.messagebox.showinfo("Sucesso", "Valor alterado com sucesso. Projeto será reiniciado")
+			self.new_project_display()
+
+		else:
+			self.time_count_var.set(self.time_history_var)
+			tk.messagebox.showinfo("Cancelado", "Alteração cancelada!")
+			return
+
+		window.grab_release()
+		window.destroy()
 
 	def donothing(self):
 		pass
