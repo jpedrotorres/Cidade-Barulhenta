@@ -51,6 +51,14 @@ class IntensidadeSom:
 		else:
 			print("Para encerrar, o stream necessita estar ligado")
 
+	def get_avarage_dbfs(self):
+		if not self.measurements_list_buffer:
+			return
+
+		avg_dbfs=np.mean(self.self.measurements_list_buffer)
+		self.measurements_list_buffer=[]
+		return avg_dbfs
+
 class TelaProjeto:
 	def __init__(self, root):
 		self.root=root
@@ -156,7 +164,7 @@ class TelaProjeto:
 		self.log_text["state"]= tk.DISABLED
 
 	def confirm_new_project(self):
-		confirm=tk.messagebox.askyesno("Novo Projeto", "Deseja iniciar um novo projeto?")
+		confirm=tk.messagebox.askokcancel("Novo Projeto", "Deseja iniciar um novo projeto?")
 
 		if confirm:
 			self.new_project_display()
