@@ -38,6 +38,17 @@ class IntensidadeSom:
 			self.is_measuring= True
 			print(f"Stream ativo. Medindo a cada {self.blocksize/self.samplerate:.1f} segundos")
 
+	def stop_stream(self):
+		if self.stream:
+			print("Encerrando stream de áudio")
+			self.is_measuring= False
+			self.stream.stop()
+			self.stream.close()
+			self.stream= None
+			print("Stream encerrado")
+		else:
+			print("Para encerrar, o stream necessita estar ligado")
+
 class TelaProjeto:
 	def __init__(self, root):
 		self.root=root
@@ -59,6 +70,7 @@ class TelaProjeto:
 		self.menu.add_cascade(label="Projeto", menu=self.project_menu)
 		self.project_menu.add_command(label="Novo", command=self.donothing)
 		self.project_menu.add_command(label="Iniciar", command=self.init_stream_gui)
+		self.project_menu.add_command(label="Encerrar", command=self.stop_stream_gui)
 		self.project_menu.add_separator()
 		self.project_menu.add_command(label="Sair", command= self.root.quit)
 
@@ -68,8 +80,8 @@ class TelaProjeto:
 
 		self.help_menu=tk.Menu(self.menu, tearoff=0)
 		self.menu.add_cascade(label="Ajuda", menu=self.help_menu)
-		self.help_menu.add_command(label="Sobre", command=self.donothing)
 		self.help_menu.add_command(label="Ajuda", command=self.donothing)
+		self.help_menu.add_command(label="Sobre", command=self.donothing)
 
 		self.root.config(menu=self.menu)
 
@@ -106,6 +118,11 @@ class TelaProjeto:
 		self.audio_thread=threading.Thread(target=self.som.start_stream)
 		self.audio_thread.daemon= True
 		self.audio_thread.start()
+		self.update_dbfs_display()
+
+	def stop_stream_gui(self):
+		if self.som.is_measuring:
+			self.som.stop_stream()
 
 	def update_dbfs_display(self):
 		current_dbfs= self.som.current_dbfs
