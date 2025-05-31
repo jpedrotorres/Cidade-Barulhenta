@@ -14,9 +14,29 @@ class IntensidadeSom:
 		self.channels=1
 		self.EPSILON=1e-10
 
+		self.stream= None
+		self.is_measuring= False
+
+		self.current_dbfs= -999.0
+		self.measurements_list_buffer= []
+
 	def calc_dbfs(self, indata, frames, time, status):
-		self.rms=np.sqrt(np.mean(indata**2) + self.EPSILON)
-		self.dbfs=20 * np.log10(self.rms)
+		rms=np.sqrt(np.mean(indata**2) + self.EPSILON)
+		dbfs=20 * np.log10(rms)
+
+		self.current_dbfs= dbfs
+
+	def start_stream(self):
+		if self.stream is None:
+			print("Iniciando stream de áudio")
+			self.stream=sd.InputStream(callback=self.calc_dbfs,
+										channels=self.channels,
+										samplerate=self.samplerate,
+										blocksize=self.blocksize,
+										dtype="float32")
+			self.stream.start()
+			self.is_measuring= True
+			print(f"Stream ativo. Medindo a cada {self.blocksize/self.samplerate:.1f} segundos")
 
 class TelaProjeto:
 	def __init__(self, root):
@@ -38,6 +58,7 @@ class TelaProjeto:
 		self.project_menu=tk.Menu(self.menu, tearoff=0)
 		self.menu.add_cascade(label="Projeto", menu=self.project_menu)
 		self.project_menu.add_command(label="Novo", command=self.donothing)
+		self.project_menu.add_command(label="Iniciar", command=self.init_stream_gui)
 		self.project_menu.add_separator()
 		self.project_menu.add_command(label="Sair", command= self.root.quit)
 
@@ -80,6 +101,18 @@ class TelaProjeto:
 		self.title.grid(row=0, columnspan=3)
 		self.frame_calibration.grid(row=1, column=0)
 		self.frame_material.grid(row=1, column=2)
+
+	def init_stream_gui(self):
+		self.audio_thread=threading.Thread(target=self.som.start_stream)
+		self.audio_thread.daemon= True
+		self.audio_thread.start()
+
+	def update_dbfs_display(self):
+		current_dbfs= self.som.current_dbfs
+		if current_dbfs != -999:
+			self.lb_current_dbfs.config(text=f"dBFS Atual: {current_dbfs:.2f} dBFS")
+
+		self.root.after(100, self.update_dbfs_display)
 
 	def donothing(self):
 		pass
