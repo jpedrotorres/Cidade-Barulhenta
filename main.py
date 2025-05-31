@@ -1,8 +1,11 @@
 import tkinter as tk
 from tkinter import messagebox
+import datetime
+import time
 
 import sounddevice as sd
 import numpy as np
+import threading
 
 class IntensidadeSom:
 	def __init__(self):
@@ -21,7 +24,11 @@ class TelaProjeto:
 		root.title("Som e Sustentabilidade")
 #		root.geometry("300x500")
 
+		self.time_count_var=tk.DoubleVar(value=5.0)
+		self.name_material_var=tk.StringVar(value="Material")
+
 		self.som=IntensidadeSom()
+
 		self.create_widgets()
 
 	def create_widgets(self):
@@ -48,7 +55,7 @@ class TelaProjeto:
 	#Criando elementos do corpo
 		self.title=tk.Label(self.root, text="Absorção do Som por Difentes Materiais")
 
-	#Criando frames de controle
+		#Criando frames de controle
 		self.frame_calibration=tk.Frame(self.root, bd=2, relief="groove", padx=10, pady=10)
 		tk.Label(self.frame_calibration, text="Calibração do Microfone").pack()
 		self.lb_calibrated_dbfs=tk.Label(self.frame_calibration, text="Calibração: Não realizada")
@@ -61,14 +68,15 @@ class TelaProjeto:
 		tk.Label(self.frame_material, text="Medição do material").pack()
 		self.lb_name_material=tk.Label(self.frame_material, text="Nome do material:")
 		self.lb_name_material.pack()
-		self.entry_name_material=tk.Entry(self.frame_material)
+		self.entry_name_material=tk.Entry(self.frame_material, textvariable=self.name_material_var)
 		self.entry_name_material.pack()
+		tk.Button(self.frame_material, text="Adicionar", command=self.donothing).pack()
 		self.log_text=tk.Text(self.frame_material, height=5, width=20)
 		self.log_text.pack()
 
 		self.frame_list_material=tk.Frame(self.root, bd=2, relief="groove", padx=10, pady=10)
 
-	#Layout dos Frames
+	#Layout do corpo principal
 		self.title.grid(row=0, columnspan=3)
 		self.frame_calibration.grid(row=1, column=0)
 		self.frame_material.grid(row=1, column=2)
