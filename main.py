@@ -22,11 +22,16 @@ class IntensidadeSom:
 		self.current_dbfs= -999.0
 		self.measurements_list_buffer= []
 
+		self.calibrated_dbfs= None
+		self.material_results= {}
+
 	def calc_dbfs(self, indata, frames, time, status):
 		rms=np.sqrt(np.mean(indata**2) + self.EPSILON)
 		dbfs=20 * np.log10(rms)
 
 		self.current_dbfs= dbfs
+		if self.is_measuring:
+			self.measurements_list_buffer.append(dbfs)
 
 	def start_stream(self):
 		if self.stream is None:
@@ -38,7 +43,7 @@ class IntensidadeSom:
 										dtype="float32")
 			self.stream.start()
 			self.is_measuring= True
-			print(f"Stream ativo. Medindo a cada {self.blocksize/self.samplerate:.1f} segundos")
+			print(f"Stream ativo. Captando dados do microfone a cada {self.blocksize/self.samplerate:.1f} segundos")
 
 	def stop_stream(self):
 		if self.stream:
@@ -55,7 +60,7 @@ class IntensidadeSom:
 		if not self.measurements_list_buffer:
 			return
 
-		avg_dbfs=np.mean(self.self.measurements_list_buffer)
+		avg_dbfs=np.mean(self.measurements_list_buffer)
 		self.measurements_list_buffer=[]
 		return avg_dbfs
 
@@ -72,6 +77,10 @@ class TelaProjeto:
 
 		self.create_widgets()
 
+		self.count_material_row=0
+		self.count_material_column=0
+		self.list_frame_material= {}
+
 	def create_widgets(self):
 	#Criando menu
 		self.menu=tk.Menu(self.root)
@@ -82,7 +91,7 @@ class TelaProjeto:
 		self.project_menu.add_command(label="Iniciar", command=self.init_stream_gui)
 		self.project_menu.add_command(label="Encerrar", command=self.stop_stream_gui)
 		self.project_menu.add_separator()
-		self.project_menu.add_command(label="Sair", command= self.root.quit)
+		self.project_menu.add_command(label="Sair", command= self.close_system_gui)
 
 		self.config_menu=tk.Menu(self.menu, tearoff=0)
 		self.menu.add_cascade(label="Configuração", menu=self.config_menu)
@@ -103,7 +112,7 @@ class TelaProjeto:
 		tk.Label(self.frame_calibration, text="Calibração do Microfone").pack()
 		self.lb_calibrated_dbfs=tk.Label(self.frame_calibration, text="Calibração: Não realizada")
 		self.lb_calibrated_dbfs.pack()
-		tk.Button(self.frame_calibration, text="Calibrar", command=self.donothing).pack()
+		tk.Button(self.frame_calibration, text="Calibrar", command=self.start_measure_calibration).pack()
 		self.lb_current_dbfs=tk.Label(self.frame_calibration, text="dBFS Atual: -")
 		self.lb_current_dbfs.pack()
 
@@ -113,7 +122,7 @@ class TelaProjeto:
 		self.lb_name_material.pack()
 		self.entry_name_material=tk.Entry(self.frame_material, textvariable=self.name_material_var)
 		self.entry_name_material.pack()
-		tk.Button(self.frame_material, text="Adicionar", command=self.donothing).pack()
+		tk.Button(self.frame_material, text="Adicionar", command=self.start_measure_material).pack()
 		self.log_text=tk.scrolledtext.ScrolledText(self.frame_material, height=5, width=20, state=tk.DISABLED)
 		self.log_text.pack()
 
@@ -140,11 +149,13 @@ class TelaProjeto:
 			self.log_text["state"]= tk.NORMAL
 			self.log_text.insert(tk.END, "Encerrando stream de áudio...\n")
 			self.log_text["state"]= tk.DISABLED
+			self.log_text.see(tk.END)
 
 		else:
 			self.log_text["state"]= tk.NORMAL
 			self.log_text.insert(tk.END, "O stream não está ligado...\n")
 			self.log_text["state"]= tk.DISABLED
+			self.log_text.see(tk.END)
 
 	def update_dbfs_display(self):
 		if self.som.is_measuring:
@@ -200,6 +211,107 @@ class TelaProjeto:
 
 		window.grab_release()
 		window.destroy()
+
+	def close_system_gui(self):
+		if self.som.stream:
+			self.som.stop_stream()
+
+		self.root.destroy()
+
+	def start_measure_calibration(self):
+		if self.som.stream is None:
+			self.init_stream_gui()
+
+		duration= self.time_count_var.get()
+		self.log_text["state"]= tk.NORMAL
+		self.log_text.insert(tk.END, f"Iniciando calibração do microfone por {duration} segundos...\n")
+		self.log_text["state"]= tk.DISABLED
+		self.log_text.see(tk.END)
+
+		self.som.measurements_list_buffer= []
+		self.root.after(int(duration * 1000), self.complete_measure_mic)
+
+	def complete_measure_mic(self):
+		avg= self.som.get_avarage_dbfs()
+
+		if avg is not None:
+			self.som.calibrated_dbfs= avg
+			self.lb_calibrated_dbfs.config(text=f"Calibração: {avg:.2f} dBFS")
+			self.log_text["state"]= tk.NORMAL
+			self.log_text.insert(tk.END, f"Calibração concluída. Média do valor para controle: {avg:.2f} dBFS\n")
+			self.log_text["state"]= tk.DISABLED
+		else:
+			self.log_text["state"]= tk.NORMAL
+			self.log_text.insert(tk.END, "Calibração não realizada...\n")
+			self.log_text["state"]= tk.DISABLED
+
+		self.log_text.see(tk.END)
+
+	def start_measure_material(self):
+		if self.som.stream is None:
+			self.init_stream_gui()
+
+		if self.som.calibrated_dbfs is None:
+			tk.messagebox.showwarning("Aviso", "É necessário calibrar o microfone primeiro para referência!")
+			return
+
+		material_name= self.name_material_var.get()
+		if material_name.lower()=="material":
+			tk.messagebox.showerror("Erro", "Nome de material inválido!")
+			return
+
+		duration=self.time_count_var.get()
+		self.log_text["state"]= tk.NORMAL
+		self.log_text.insert(tk.END, f"Iniciando calibração do {material_name}...\n")
+		self.log_text["state"]= tk.DISABLED
+		self.log_text.see(tk.END)
+
+		self.som.measurements_list_buffer= []
+
+		self.root.after(int(duration * 1000), lambda: self.complete_measure_material(material_name))
+
+	def complete_measure_material(self, material_name):
+		avg= self.som.get_avarage_dbfs()
+
+		if avg is not None and self.som.calibrated_dbfs is not None:
+			attenuation=self.som.calibrated_dbfs - avg
+			self.som.material_results[material_name]= {"media": avg, "atenuacao": attenuation}
+
+			self.log_text["state"]= tk.NORMAL
+			self.log_text.insert(tk.END, f"Medição para {material_name} concluida...\n")
+			self.log_text.insert(tk.END, f"Valor médio: {avg:.2f} dBFS...\n")
+			self.log_text.insert(tk.END, f"Valor de atenuação: {attenuation:.2f} dB...\n")
+			self.log_text["state"]= tk.DISABLED
+
+			self.create_frame_material(material_name)
+
+		else:
+			self.log_text["state"]= tk.NORMAL
+			self.log_text.insert(tk.END, f"\nNão foi possível realizar a medição de {material_name}...\n")
+			self.log_text["state"]= tk.DISABLED
+
+		self.log_text.see(tk.END)
+
+	def create_frame_material(self, material_name):
+		if material_name in self.list_frame_material:
+			confirm= tk.messagebox.askokcancel("Aviso", "Já existe um material cadastrado com esse nome. Deseja sobrescreve-lo?")
+
+			if not confirm:
+				return
+
+		frame_material=tk.Frame(self.frame_list_material, bd=2, relief="groove", padx=10, pady=10)
+		tk.Label(frame_material, text=f"{material_name}").pack()
+		tk.Label(frame_material, text=f"Média {material_name}: {self.som.material_results[material_name]['media']:.2f} dBFS").pack()
+		tk.Label(frame_material, text=f"Atenuação: {self.som.material_results[material_name]['atenuacao']:.2f} dB").pack()
+
+		self.list_frame_material[material_name]=frame_material
+
+		self.frame_list_material.grid(row=3, columnspan=3)
+		frame_material.grid(row=self.count_material_row, column=self.count_material_column)
+		#self.count_material_row+=1
+		self.count_material_column+=1
+
+		#CRIAR BOTÂO PARA EXCLUIR MEDIDA
 
 	def donothing(self):
 		pass
