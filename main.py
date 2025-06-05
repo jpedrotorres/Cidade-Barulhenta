@@ -4,8 +4,10 @@ from tkinter import messagebox
 from tkinter import scrolledtext
 import datetime
 import time
+import os
 
 import sounddevice as sd
+import soundfile as sf
 import numpy as np
 import threading
 
@@ -64,6 +66,34 @@ class IntensidadeSom:
 		self.measurements_list_buffer=[]
 		return avg_dbfs
 
+class PlayerSom:
+	def __init__(self):
+		self.reference_sound_file = "sons/ruido_rosa.wav"
+
+	def play_sound(self):
+		try:
+			data, fs = sf.read(self.reference_sound_file, dtype='float32')
+
+			sd.play(data, fs, device=self.som.output_device_id if hasattr(self.som, 'output_device_id') else None)
+
+#			self.log_text.insert(tk.END, f"Reproduzindo som de teste: {self.reference_sound_file} (gravação ativa)...\n")
+#			self.log_text.see(tk.END)
+
+		except FileNotFoundError:
+			tk.messagebox.showerror("Erro de Arquivo", f"Arquivo de áudio '{filename}' não encontrado. Verifique o caminho.")
+#			self.log_text.insert(tk.END, f"Erro: Arquivo de áudio não encontrado em {filename}\n")
+#			self.log_text.see(tk.END)
+		except Exception as e:
+			tk.messagebox.showerror("Erro de Reprodução", f"Não foi possível reproduzir o áudio: {e}")
+#			self.log_text.insert(tk.END, f"Erro ao reproduzir áudio: {e}\n")
+#			self.log_text.see(tk.END)
+
+	def stop_sound(self):
+		sd.stop()
+
+		self.log_text.insert(tk.END, "Reprodução de som de teste interrompida.\n")
+		self.log_text.see(tk.END)
+
 class TelaProjeto:
 	def __init__(self, root):
 		self.root=root
@@ -74,6 +104,7 @@ class TelaProjeto:
 		self.name_material_var=tk.StringVar(value="Material")
 
 		self.som=IntensidadeSom()
+		self.music=PlayerSom()
 
 		self.create_widgets()
 
@@ -115,6 +146,7 @@ class TelaProjeto:
 		tk.Button(self.frame_calibration, text="Calibrar", command=self.start_measure_calibration).pack()
 		self.lb_current_dbfs=tk.Label(self.frame_calibration, text="dBFS Atual: -")
 		self.lb_current_dbfs.pack()
+		tk.Button(self.frame_calibration, text="Iniciar Som", command=self.music.play_sound).pack()
 
 		self.frame_material=tk.Frame(self.root, bd=2, relief="groove", padx=10, pady=10)
 		tk.Label(self.frame_material, text="Medição do material").pack()
