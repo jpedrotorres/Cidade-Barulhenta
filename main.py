@@ -72,7 +72,6 @@ class PlayerSom:
 		self.reference_sound_file=os.path.join(BASE_DIR, "sons", "ruido_rosa.wav")
 
 		self.som=som_instance
-#		self.log_text=log_text_widget
 
 		if not os.path.exists(self.reference_sound_file):
 			messagebox.showerror("Erro de Arquivo", f"Arquivo de áudio não encontrado em: {self.reference_sound_file}")
@@ -84,29 +83,20 @@ class PlayerSom:
 
 			sd.play(data, fs, device=self.som.output_device_id if hasattr(self.som, 'output_device_id') else None)
 
-#			self.log_text.insert(tk.END, f"Reproduzindo som de teste: {self.reference_sound_file} (gravação ativa)...\n")
-#			self.log_text.see(tk.END)
-
 		except FileNotFoundError:
 			tk.messagebox.showerror("Erro de Arquivo", f"Arquivo de áudio '{filename}' não encontrado. Verifique o caminho.")
-#			self.log_text.insert(tk.END, f"Erro: Arquivo de áudio não encontrado em {filename}\n")
-#			self.log_text.see(tk.END)
+
 		except Exception as e:
 			tk.messagebox.showerror("Erro de Reprodução", f"Não foi possível reproduzir o áudio: {e}")
-#			self.log_text.insert(tk.END, f"Erro ao reproduzir áudio: {e}\n")
-#			self.log_text.see(tk.END)
 
 	def stop_sound(self):
 		sd.stop()
-
-#		self.log_text.insert(tk.END, "Reprodução de som de teste interrompida.\n")
-#		self.log_text.see(tk.END)
 
 class TelaProjeto:
 	def __init__(self, root):
 		self.root=root
 		root.title("Som e Sustentabilidade")
-#		root.geometry("300x500")
+		root.resizable(False, False)
 
 		self.time_count_var=tk.DoubleVar(value=5.0)
 		self.name_material_var=tk.StringVar(value="Material")
@@ -146,7 +136,7 @@ class TelaProjeto:
 	#Criando elementos do corpo
 		self.title=tk.Label(self.root, text="Absorção do Som por Difentes Materiais")
 
-		#Criando frames de controle
+		#Criando frames (Microfone)
 		self.frame_calibration=tk.Frame(self.root, bd=2, relief="groove", padx=10, pady=10)
 		tk.Label(self.frame_calibration, text="Calibração do Microfone").pack()
 		self.lb_calibrated_dbfs=tk.Label(self.frame_calibration, text="Calibração: Não realizada")
@@ -179,23 +169,15 @@ class TelaProjeto:
 		self.audio_thread.start()
 		self.update_dbfs_display()
 
-		self.log_text["state"]= tk.NORMAL
-		self.log_text.insert(tk.END, "Iniciando stream de áudio...\n")
-		self.log_text["state"]= tk.DISABLED
+		self.print_log_message(f"Iniciando stream de áudio")
 
 	def stop_stream_gui(self):
 		if self.som.is_measuring:
 			self.som.stop_stream()
-			self.log_text["state"]= tk.NORMAL
-			self.log_text.insert(tk.END, "Encerrando stream de áudio...\n")
-			self.log_text["state"]= tk.DISABLED
-			self.log_text.see(tk.END)
+			self.print_log_message(f"Encerrando stream de áudio")
 
 		else:
-			self.log_text["state"]= tk.NORMAL
-			self.log_text.insert(tk.END, "O stream não está ligado...\n")
-			self.log_text["state"]= tk.DISABLED
-			self.log_text.see(tk.END)
+			self.print_log_message(f"O stream não está ligado")
 
 	def update_dbfs_display(self):
 		if self.som.is_measuring:
@@ -263,10 +245,7 @@ class TelaProjeto:
 			self.init_stream_gui()
 
 		duration= self.time_count_var.get()
-		self.log_text["state"]= tk.NORMAL
-		self.log_text.insert(tk.END, f"Iniciando calibração do microfone por {duration} segundos...\n")
-		self.log_text["state"]= tk.DISABLED
-		self.log_text.see(tk.END)
+		self.print_log_message(f"Iniciando calibração do microfone por {duration} segundos")
 
 		self.som.measurements_list_buffer= []
 		self.root.after(int(duration * 1000), self.complete_measure_mic)
@@ -277,15 +256,10 @@ class TelaProjeto:
 		if avg is not None:
 			self.som.calibrated_dbfs= avg
 			self.lb_calibrated_dbfs.config(text=f"Calibração: {avg:.2f} dBFS")
-			self.log_text["state"]= tk.NORMAL
-			self.log_text.insert(tk.END, f"Calibração concluída. Média do valor para controle: {avg:.2f} dBFS\n")
-			self.log_text["state"]= tk.DISABLED
-		else:
-			self.log_text["state"]= tk.NORMAL
-			self.log_text.insert(tk.END, "Calibração não realizada...\n")
-			self.log_text["state"]= tk.DISABLED
+			self.print_log_message(f"Calibração concluída. Média do valor para controle: {avg:.2f} dBFS")
 
-		self.log_text.see(tk.END)
+		else:
+			self.print_log_message(f"Calibração não realizada")
 
 	def start_measure_material(self):
 		if self.som.stream is None:
@@ -301,10 +275,8 @@ class TelaProjeto:
 			return
 
 		duration=self.time_count_var.get()
-		self.log_text["state"]= tk.NORMAL
-		self.log_text.insert(tk.END, f"Iniciando calibração do {material_name}...\n")
-		self.log_text["state"]= tk.DISABLED
-		self.log_text.see(tk.END)
+
+		self.print_log_message(f"Iniciando calibração do {material_name}")
 
 		self.som.measurements_list_buffer= []
 
@@ -319,20 +291,14 @@ class TelaProjeto:
 			attenuation=self.som.calibrated_dbfs - avg
 			self.som.material_results[material_name]= {"media": avg, "atenuacao": attenuation}
 
-			self.log_text["state"]= tk.NORMAL
-			self.log_text.insert(tk.END, f"Medição para {material_name} concluida...\n")
-			self.log_text.insert(tk.END, f"Valor médio: {avg:.2f} dBFS...\n")
-			self.log_text.insert(tk.END, f"Valor de atenuação: {attenuation:.2f} dB...\n")
-			self.log_text["state"]= tk.DISABLED
+			self.print_log_message(f"Medição para {material_name} concluida")
+			self.print_log_message(f"Valor médio: {avg:.2f} dBFS")
+			self.print_log_message(f"Valor de atenuação: {attenuation:.2f} dB")
 
 			self.create_frame_material(material_name)
 
 		else:
-			self.log_text["state"]= tk.NORMAL
-			self.log_text.insert(tk.END, f"\nNão foi possível realizar a medição de {material_name}...\n")
-			self.log_text["state"]= tk.DISABLED
-
-		self.log_text.see(tk.END)
+			self.print_log_message(f"Não foi possível realizar a medição de {material_name}")
 
 	def create_frame_material(self, material_name):
 		if material_name in self.list_frame_material:
@@ -354,6 +320,13 @@ class TelaProjeto:
 		self.count_material_column+=1
 
 		#CRIAR BOTÂO PARA EXCLUIR MEDIDA
+
+	def print_log_message(self, message):
+		self.log_text["state"]= tk.NORMAL
+		self.log_text.insert(tk.END, f"{message}...\n")
+		self.log_text["state"]= tk.DISABLED
+
+		self.log_text.see(tk.END)
 
 	def donothing(self):
 		pass
