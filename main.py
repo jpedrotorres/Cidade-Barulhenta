@@ -67,8 +67,16 @@ class IntensidadeSom:
 		return avg_dbfs
 
 class PlayerSom:
-	def __init__(self):
-		self.reference_sound_file = "sons/ruido_rosa.wav"
+	def __init__(self, som_instance):
+		BASE_DIR=os.path.dirname(os.path.abspath(__file__))
+		self.reference_sound_file=os.path.join(BASE_DIR, "sons", "ruido_rosa.wav")
+
+		self.som=som_instance
+#		self.log_text=log_text_widget
+
+		if not os.path.exists(self.reference_sound_file):
+			messagebox.showerror("Erro de Arquivo", f"Arquivo de áudio não encontrado em: {self.reference_sound_file}")
+
 
 	def play_sound(self):
 		try:
@@ -91,8 +99,8 @@ class PlayerSom:
 	def stop_sound(self):
 		sd.stop()
 
-		self.log_text.insert(tk.END, "Reprodução de som de teste interrompida.\n")
-		self.log_text.see(tk.END)
+#		self.log_text.insert(tk.END, "Reprodução de som de teste interrompida.\n")
+#		self.log_text.see(tk.END)
 
 class TelaProjeto:
 	def __init__(self, root):
@@ -104,7 +112,7 @@ class TelaProjeto:
 		self.name_material_var=tk.StringVar(value="Material")
 
 		self.som=IntensidadeSom()
-		self.music=PlayerSom()
+		self.music=PlayerSom(self.som)
 
 		self.create_widgets()
 
@@ -300,9 +308,11 @@ class TelaProjeto:
 
 		self.som.measurements_list_buffer= []
 
+		self.music.play_sound()
 		self.root.after(int(duration * 1000), lambda: self.complete_measure_material(material_name))
 
 	def complete_measure_material(self, material_name):
+		self.music.stop_sound()
 		avg= self.som.get_avarage_dbfs()
 
 		if avg is not None and self.som.calibrated_dbfs is not None:
