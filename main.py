@@ -144,7 +144,6 @@ class TelaProjeto:
 		tk.Button(self.frame_calibration, text="Calibrar", command=self.start_measure_calibration).pack()
 		self.lb_current_dbfs=tk.Label(self.frame_calibration, text="dBFS Atual: -")
 		self.lb_current_dbfs.pack()
-		tk.Button(self.frame_calibration, text="Iniciar Som", command=self.music.play_sound).pack()
 
 		self.frame_material=tk.Frame(self.root, bd=2, relief="groove", padx=10, pady=10)
 		tk.Label(self.frame_material, text="Medição do material").pack()
@@ -247,10 +246,12 @@ class TelaProjeto:
 		duration= self.time_count_var.get()
 		self.print_log_message(f"Iniciando calibração do microfone por {duration} segundos")
 
+		self.music.play_sound()
 		self.som.measurements_list_buffer= []
 		self.root.after(int(duration * 1000), self.complete_measure_mic)
 
 	def complete_measure_mic(self):
+		self.music.stop_sound()
 		avg= self.som.get_avarage_dbfs()
 
 		if avg is not None:
