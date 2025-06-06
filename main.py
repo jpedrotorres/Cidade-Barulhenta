@@ -512,6 +512,41 @@ class TelaProjeto:
 		window.transient(self.root)
 		window.grab_set()
 
+		columns=("material", "dbfs_medio", "atenuacao", "duracao_medida", "data_hora")
+		self.tree=ttk.Treeview(window, columns=columns, show="headings")
+
+		self.tree.heading("material", text="Material")
+		self.tree.heading("dbfs_medio", text="dBFS Médio")
+		self.tree.heading("atenuacao", text="Atenuação (dB)")
+		self.tree.heading("duracao_medida", text="Duração (s)")
+		self.tree.heading("data_hora", text="Data/Hora")
+
+		self.tree.column("material", width=200, anchor="center")
+		self.tree.column("dbfs_medio", width=150, anchor="center")
+		self.tree.column("atenuacao", width=120, anchor="center")
+		self.tree.column("duracao_medida", width=150, anchor="center")
+		self.tree.column("data_hora", width=120, anchor="center")
+
+		scrollbar = ttk.Scrollbar(window, orient="vertical", command=self.tree.yview)
+		self.tree.configure(yscrollcommand=scrollbar.set)
+
+		self.tree.pack(side="left", fill="both", expand=True)
+		scrollbar.pack(side="right", fill="y")
+
+		self.populate_treeview()
+
+		window.update_idletasks()
+		x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (window.winfo_width() // 2)
+		y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (window.winfo_height() // 2)
+		window.geometry(f"+{x}+{y}")
+		window.mainloop()
+
+	def populate_treeview(self):
+		for item in self.tree.get_children():
+			self.tree.delete(item)
+
+		
+
 	#Criando gráfico com o Matplotlib
 	def show_graph(self):
 		window= tk.Toplevel(self.root)
