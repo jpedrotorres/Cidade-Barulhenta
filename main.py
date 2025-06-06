@@ -233,6 +233,9 @@ class TelaProjeto:
 			self.audio_thread=threading.Thread(target=self.som.start_stream)
 			self.audio_thread.daemon= True
 			self.audio_thread.start()
+			
+			if hasattr(self, 'dbfs_update_after_id') and self.dbfs_update_after_id is not None:
+				self.root.after_cancel(self.dbfs_update_after_id)
 			self.update_dbfs_display()
 
 			self.print_log_message("Iniciando stream de áudio")
@@ -256,7 +259,7 @@ class TelaProjeto:
 		else:
 			self.lb_current_dbfs.config(text="dBFS Atual: -")
 
-		self.root.after(100, self.update_dbfs_display)
+		self.dbfs_update_after_id= self.root.after(100, self.update_dbfs_display)
 
 	def new_project_display(self):
 		if self.som.stream:
@@ -367,6 +370,9 @@ class TelaProjeto:
 		self.name_material_var.set("Material")
 
 	def close_system_gui(self):
+		if hasattr(self, 'dbfs_update_after_id') and self.dbfs_update_after_id is not None:
+			self.root.after_cancel(self.dbfs_update_after_id)
+			self.dbfs_update_after_id = None
 		self.music.stop_sound()
 		if self.som.stream:
 			self.som.stop_stream()
@@ -551,10 +557,12 @@ class TelaProjeto:
 		self.populate_treeview()
 
 		window.update_idletasks()
+		
 		x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (window.winfo_width() // 2)
 		y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (window.winfo_height() // 2)
+
 		window.geometry(f"+{x}+{y}")
-		window.mainloop()
+		self.root.wait_window(window)
 
 	def populate_treeview(self):
 		for item in self.tree.get_children():
@@ -575,7 +583,6 @@ class TelaProjeto:
 			self.print_log_message(f"Erro ao adicionar calibração ao Treeview: {e}")
 
 		for measurement_data in self.all_measurements_history:
-			print(measurement_data)
 			try:
 				values= (
 					measurement_data.get('material', 'N/A'),
@@ -593,10 +600,69 @@ class TelaProjeto:
 
 	#Criando gráfico com o Matplotlib
 	def show_graph(self):
+		if hasattr(self, 'chart_window_instance') and self.chart_window_instance.winfo_exists():
+			self.chart_window_instance.lift() # Bring existing window to front
+			self.print_log_message("Graph window is already open.")
+			return
+	
 		window= tk.Toplevel(self.root)
-		window.title("Tabelas de Dados")
+		window.title("Gráfico de Atenuação de Materiais")
 		window.transient(self.root)
 		window.grab_set()
+		
+		self.chart_window_instance = window
+		
+		materials = []
+		attenuations = []
+		
+		unique_material_data = {}
+		for record in self.all_measurements_history:
+			material_name = record.get('material', 'N/A')
+			attenuation = record.get('atenuacao', 0.0)
+			if material_name != 'N/A':
+				unique_material_data[material_name] = attenuation
+			
+		for material, attenuation in unique_material_data.items():
+			materials.append(material)
+			attenuations.append(attenuation)
+		
+		if not materials:
+			messagebox.showinfo("Sem Dados", "Não há dados de materiais para gerar o gráfico de atenuação.")
+			window.destroy()
+			self.chart_window_instance = None # Clear the reference
+			return
+		
+		fig, ax = plt.subplots(figsize=(8, 6))
+		ax.bar(materials, attenuations, color='skyblue')
+		
+		ax.set_xlabel("Material")
+		ax.set_ylabel("Atenuação (dB)")
+		ax.set_title("Atenuação Sonora por Material")
+		ax.tick_params(axis='x', rotation=45)
+		plt.tight_layout()
+		
+		canvas = FigureCanvasTkAgg(fig, master=window)
+		canvas_widget = canvas.get_tk_widget()
+		canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+		
+		toolbar = NavigationToolbar2Tk(canvas, window)
+		toolbar.update()
+		canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+		
+		def on_graph_window_close():
+			plt.close(fig)
+			window.destroy()
+			self.chart_window_instance = None
+			
+		window.protocol("WM_DELETE_WINDOW", on_graph_window_close)
+		
+		window.update_idletasks()
+		x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (window.winfo_width() // 2)
+		y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (window.winfo_height() // 2)
+		window.geometry(f"+{x}+{y}")
+
+		self.root.wait_window(window)
+
 
 	def donothing(self):
 		pass
