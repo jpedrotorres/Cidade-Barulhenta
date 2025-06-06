@@ -6,6 +6,8 @@ import datetime
 import time
 import os
 
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import sounddevice as sd
 import soundfile as sf
 import numpy as np
@@ -115,6 +117,7 @@ class TelaProjeto:
 		self.time_count_var=tk.DoubleVar(value=5.0)
 		self.name_material_var=tk.StringVar(value="Material")
 		self.list_frame_material= {}
+		self.all_measurements_history= []
 
 		self.som=IntensidadeSom()
 		self.music=PlayerSom(self.som)
@@ -427,12 +430,16 @@ class TelaProjeto:
 
 		if avg is not None and self.som.calibrated_dbfs is not None:
 			attenuation=self.som.calibrated_dbfs - avg
-			self.som.material_results[material_name]= {
+			measurement_record= {
+				"material": material_name,
 				"media": avg,
 				"atenuacao": attenuation,
-				"duration": self.time_count_var.get(),
-				"datetime": datetime.datetime.now().strftime('%d-%m-%Y')
+				"duracao": self.time_count_var.get(),
+				"datetime": datetime.datetime.now().strftime('%d/%m/%Y %H:%M')
 			}
+			
+			self.all_measurements_history.append(measurement_record)
+			self.som.material_results[material_name]= measurement_record
 
 			self.print_log_message(f"Medição para {material_name} concluida")
 			self.print_log_message(f"Valor médio: {avg:.2f} dBFS")
@@ -445,6 +452,9 @@ class TelaProjeto:
 
 				if 'lb_current_dbfs' in material_data:
 					material_data['lb_current_dbfs'].config(text="Pronto")
+			
+			if hasattr(self, 'tree') and self.tree.winfo_exists():
+				self.populate_treeview()
 
 			if not is_widget_main and material_name not in self.list_frame_material:
 				self.create_frame_material(material_name)
@@ -517,20 +527,20 @@ class TelaProjeto:
 		window.transient(self.root)
 		window.grab_set()
 
-		columns=("material", "dbfs_medio", "atenuacao", "duracao_medida", "data")
+		columns=("material", "dbfs_medio", "atenuacao", "duracao_medida", "data_hora")
 		self.tree=ttk.Treeview(window, columns=columns, show="headings")
 
 		self.tree.heading("material", text="Material")
 		self.tree.heading("dbfs_medio", text="dBFS Médio")
 		self.tree.heading("atenuacao", text="Atenuação (dB)")
 		self.tree.heading("duracao_medida", text="Duração (s)")
-		self.tree.heading("data", text="Data")
+		self.tree.heading("data_hora", text="Data")
 
 		self.tree.column("material", width=200, anchor="center")
 		self.tree.column("dbfs_medio", width=150, anchor="center")
 		self.tree.column("atenuacao", width=120, anchor="center")
 		self.tree.column("duracao_medida", width=150, anchor="center")
-		self.tree.column("data", width=120, anchor="center")
+		self.tree.column("data_hora", width=120, anchor="center")
 
 		scrollbar = ttk.Scrollbar(window, orient="vertical", command=self.tree.yview)
 		self.tree.configure(yscrollcommand=scrollbar.set)
@@ -550,7 +560,36 @@ class TelaProjeto:
 		for item in self.tree.get_children():
 			self.tree.delete(item)
 
-		
+		try:
+			calib_dbfs = self.som.calibrated_dbfs if self.som.calibrated_dbfs is not None else 0.0
+			values= (
+				"Caixa Vazia (modelo)",
+				f"{calib_dbfs:.2f}",
+				"N/A",
+				self.time_count_var.get(),
+				datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
+			)
+			
+			self.tree.insert("", "end", values=values)
+		except Exception as e:
+			self.print_log_message(f"Erro ao adicionar calibração ao Treeview: {e}")
+
+		for measurement_data in self.all_measurements_history:
+			print(measurement_data)
+			try:
+				values= (
+					measurement_data.get('material', 'N/A'),
+					f"{measurement_data.get('media', 0.0):.2f}",
+					f"{measurement_data.get('atenuacao', 0.0):.2f}",
+					f"{measurement_data.get('duracao', 0.0):.1f}",
+					f"{measurement_data.get('datetime', 'N/A')}",
+				)
+
+				self.tree.insert("", "end", values=values)
+
+			except Exception as e:
+				material_name_error = measurement_data.get('material_name', 'Material Desconhecido')
+				self.print_log_message(f"Erro ao popular Treeview para {material_name_error}: {e}")
 
 	#Criando gráfico com o Matplotlib
 	def show_graph(self):
