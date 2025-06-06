@@ -427,7 +427,12 @@ class TelaProjeto:
 
 		if avg is not None and self.som.calibrated_dbfs is not None:
 			attenuation=self.som.calibrated_dbfs - avg
-			self.som.material_results[material_name]= {"media": avg, "atenuacao": attenuation}
+			self.som.material_results[material_name]= {
+				"media": avg,
+				"atenuacao": attenuation,
+				"duration": self.time_count_var.get(),
+				"datetime": datetime.datetime.now().strftime('%d-%m-%Y')
+			}
 
 			self.print_log_message(f"Medição para {material_name} concluida")
 			self.print_log_message(f"Valor médio: {avg:.2f} dBFS")
@@ -512,20 +517,20 @@ class TelaProjeto:
 		window.transient(self.root)
 		window.grab_set()
 
-		columns=("material", "dbfs_medio", "atenuacao", "duracao_medida", "data_hora")
+		columns=("material", "dbfs_medio", "atenuacao", "duracao_medida", "data")
 		self.tree=ttk.Treeview(window, columns=columns, show="headings")
 
 		self.tree.heading("material", text="Material")
 		self.tree.heading("dbfs_medio", text="dBFS Médio")
 		self.tree.heading("atenuacao", text="Atenuação (dB)")
 		self.tree.heading("duracao_medida", text="Duração (s)")
-		self.tree.heading("data_hora", text="Data/Hora")
+		self.tree.heading("data", text="Data")
 
 		self.tree.column("material", width=200, anchor="center")
 		self.tree.column("dbfs_medio", width=150, anchor="center")
 		self.tree.column("atenuacao", width=120, anchor="center")
 		self.tree.column("duracao_medida", width=150, anchor="center")
-		self.tree.column("data_hora", width=120, anchor="center")
+		self.tree.column("data", width=120, anchor="center")
 
 		scrollbar = ttk.Scrollbar(window, orient="vertical", command=self.tree.yview)
 		self.tree.configure(yscrollcommand=scrollbar.set)
