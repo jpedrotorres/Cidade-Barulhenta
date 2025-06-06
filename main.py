@@ -140,6 +140,11 @@ class TelaProjeto:
 		self.project_menu.add_separator()
 		self.project_menu.add_command(label="Sair", command= self.close_system_gui)
 
+		self.show_menu=tk.Menu(self.menu, tearoff=0)
+		self.menu.add_cascade(label="Exibir", menu=self.show_menu)
+		self.show_menu.add_command(label="Tabelas", command=self.show_result_table)
+		self.show_menu.add_command(label="Gráficos", command=self.show_graph)
+
 		self.config_menu=tk.Menu(self.menu, tearoff=0)
 		self.menu.add_cascade(label="Configuração", menu=self.config_menu)
 		self.config_menu.add_command(label="Tempo de contagem", command=self.screen_time_config)
@@ -499,6 +504,20 @@ class TelaProjeto:
 		self.log_text["state"]= tk.DISABLED
 
 		self.log_text.see(tk.END)
+
+	#Criando TreeView
+	def show_result_table(self):
+		window= tk.Toplevel(self.root)
+		window.title("Tabelas de Dados")
+		window.transient(self.root)
+		window.grab_set()
+
+	#Criando gráfico com o Matplotlib
+	def show_graph(self):
+		window= tk.Toplevel(self.root)
+		window.title("Tabelas de Dados")
+		window.transient(self.root)
+		window.grab_set()
 
 	def donothing(self):
 		pass
