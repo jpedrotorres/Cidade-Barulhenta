@@ -382,8 +382,11 @@ class TelaProjeto:
 	def start_measure_calibration(self):
 		if self.som.stream is None:
 			self.init_stream_gui()
+			messagebox.showwarning("Aviso", "Você não iniciou o stream. Esperar 5 segundos")
+			time.sleep(5)
 
-		time.sleep(1)
+		else:
+			time.sleep(1)
 
 		duration= self.time_count_var.get()
 		self.print_log_message(f"Iniciando calibração do microfone por {duration} segundos")
@@ -409,6 +412,7 @@ class TelaProjeto:
 	def start_measure_material(self, material_name, is_widget_main=False):
 		if self.som.stream is None:
 			self.init_stream_gui()
+			time.sleep(2)
 			return
 
 		if self.som.calibrated_dbfs is None:
@@ -600,10 +604,12 @@ class TelaProjeto:
 
 	#Criando gráfico com o Matplotlib
 	def show_graph(self):
-		if hasattr(self, 'chart_window_instance') and self.chart_window_instance.winfo_exists():
-			self.chart_window_instance.lift() # Bring existing window to front
-			self.print_log_message("Graph window is already open.")
-			return
+		if hasattr(self, 'chart_window_instance') and \
+			self.chart_window_instance is not None and \
+			self.chart_window_instance.winfo_exists():
+				self.chart_window_instance.lift()
+				self.print_log_message("Janela do gráfico já está aberta.")
+				return
 	
 		window= tk.Toplevel(self.root)
 		window.title("Gráfico de Atenuação de Materiais")
