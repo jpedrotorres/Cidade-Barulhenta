@@ -573,7 +573,18 @@ class TelaProjeto:
 			self.tree.delete(item)
 
 		try:
-			calib_dbfs = self.som.calibrated_dbfs if self.som.calibrated_dbfs is not None else 0.0
+			if self.som.calibrated_dbfs is None:
+				self.tree.insert("", "end", values=(
+					"Caixa Vazia (modelo)",
+					"Não medido",
+					"N/A",
+					"N/A",
+					"N/A"
+				))
+				return
+			
+			calib_dbfs = self.som.calibrated_dbfs
+			
 			values= (
 				"Caixa Vazia (modelo)",
 				f"{calib_dbfs:.2f}",
