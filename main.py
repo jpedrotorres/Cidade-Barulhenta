@@ -72,7 +72,7 @@ class IntensidadeSom:
 
 	def get_avarage_dbfs(self):
 		self.stop_data_collection()
-		
+
 		if not self.measurements_list_buffer:
 			print("Aviso: Nenhuma leitura de dBFS coletada para a média.")
 			return
@@ -124,7 +124,7 @@ class TelaProjeto:
 
 		self.count_material_row=0
 		self.count_material_column=0
-		
+
 		self.root.protocol("WM_DELETE_WINDOW", self.close_system_gui)
 
 	def create_widgets(self):
@@ -165,7 +165,7 @@ class TelaProjeto:
 		self.frame_calibration=tk.Frame(self.root, bd=2, relief="groove", width=FRAME_WIDTH, height=FRAME_HEIGHT, padx=5, pady=5)
 		self.frame_calibration.grid_propagate(False)
 		self.frame_calibration.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
-		
+
 		tk.Label(self.frame_calibration, text="Calibração do Microfone", font=('Arial', 10, 'bold')).pack()
 		self.lb_calibrated_dbfs=tk.Label(self.frame_calibration, text="Calibração: Não realizada")
 		self.lb_calibrated_dbfs.pack()
@@ -194,7 +194,7 @@ class TelaProjeto:
 		self.frame_material_ovo.grid(row=2, column=1, padx=5, pady=5, sticky="nsew")
 
 		self.create_frame_material("Caixa de Ovo", is_widget_main=True, frame_reference=self.frame_material_ovo)
-		
+
 		#Criando log_text
 		self.log_text=scrolledtext.ScrolledText(self.root, height=5, width=40, state=tk.DISABLED)
 
@@ -204,7 +204,7 @@ class TelaProjeto:
 		self.root.grid_columnconfigure(0, weight=1)
 		self.root.grid_columnconfigure(1, weight=1)
 		self.root.grid_columnconfigure(2, weight=1)
-		
+
 		self.root.grid_rowconfigure(1, weight=1)
 		self.root.grid_rowconfigure(2, weight=1)
 		self.root.grid_rowconfigure(3, weight=1)
@@ -253,27 +253,27 @@ class TelaProjeto:
 	def new_project_display(self):
 		if self.som.stream:
 			self.som.stop_stream()
-		
+
 		self.som.calibrated_dbfs = None
 		self.som.material_results = {}
-		
+
 		self.lb_calibrated_dbfs.config(text="Calibração: Não realizada")
 		self.lb_current_dbfs.config(text="dBFS Atual: -")
-		
+
 		for material_data in self.list_frame_material.values():
 			if 'frame' in material_data and material_data['frame'] is not self.frame_material_espuma and \
 				material_data['frame'] is not self.frame_material_jornal and \
 				material_data['frame'] is not self.frame_material_ovo:
 				material_data['frame'].destroy()
 		self.list_frame_material = {}
-		
+
 		self.create_frame_material("Espuma", is_widget_main=True, frame_reference=self.frame_material_espuma)
 		self.create_frame_material("Jornal", is_widget_main=True, frame_reference=self.frame_material_jornal)
 		self.create_frame_material("Caixa de Ovo", is_widget_main=True, frame_reference=self.frame_material_ovo)
-		
+
 		self.count_material_row = 0
 		self.count_material_column = 0
-		
+
 		self.log_text["state"]= tk.NORMAL
 		self.log_text.delete(1.0, tk.END)
 		self.log_text["state"]= tk.DISABLED
@@ -314,35 +314,35 @@ class TelaProjeto:
 			self.time_count_var.set(self.time_history_var)
 			messagebox.showinfo("Cancelado", "Alteração cancelada!")
 			return
-	
+
 	def screen_new_material(self):
 		window=tk.Toplevel(self.root)
 		window.title("Novo Material")
 		window.transient(self.root)
 		window.grab_set()
-		
+
 		main_frame = ttk.Frame(window, padding="10 10 10 10")
 		main_frame.pack(expand=True, fill="both")
-		
+
 		ttk.Label(main_frame, text="Adicionar Novo Material", font=('Arial', 12, 'bold')).grid(row=0, column=0, columnspan=2, pady=10)
 		ttk.Label(main_frame, text="Nome do Material:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
-		
+
 		self.entry_name_material_popup = ttk.Entry(main_frame, textvariable=self.name_material_var)
 		self.entry_name_material_popup.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
 
 		ttk.Button(main_frame, text="Adicionar Material", command=lambda: self._add_material_and_measure(window)).grid(row=2, column=0, padx=5, pady=10)
 		ttk.Button(main_frame, text="Cancelar", command=window.destroy).grid(row=2, column=1, padx=5, pady=10)
-	
+
 	def _add_material_and_measure(self, window):
 		if self.som.stream is None:
 			messagebox.showwarning("Aviso", "O stream de áudio não está ativo. Por favor, inicie o stream antes de adicionar um novo material.")
 			return
-		
+
 		material_name = self.name_material_var.get()
 		if material_name.lower()=="material" or not material_name.strip():
 			messagebox.showerror("Erro", "Nome de material inválido!")
 			return
-		
+
 		if material_name in self.list_frame_material:
 			confirm= messagebox.askokcancel("Aviso", "Já existe um material cadastrado com esse nome. Deseja sobrescreve-lo?")
 			if not confirm:
@@ -352,14 +352,11 @@ class TelaProjeto:
 				if old_frame and 'frame' in old_material_data:
 					old_material_data['frame'].destroy()
 				del self.list_frame_material[material_name]
-		
+
 		self.start_measure_material(material_name, is_widget_main=False)
-		
+
 		window.destroy()
 		self.name_material_var.set("Material")
-		
-
-		
 
 	def close_system_gui(self):
 		self.music.stop_sound()
@@ -371,7 +368,7 @@ class TelaProjeto:
 	def start_measure_calibration(self):
 		if self.som.stream is None:
 			self.init_stream_gui()
-		
+
 		time.sleep(1)
 
 		duration= self.time_count_var.get()
@@ -412,7 +409,7 @@ class TelaProjeto:
 
 		self.som.start_data_collection()
 		self.music.play_sound()
-		
+
 		if material_name in self.list_frame_material:
 			if 'lb_current_dbfs' in self.list_frame_material[material_name]:
 				self.list_frame_material[material_name]['lb_current_dbfs'].config(text="Medindo...")
@@ -435,7 +432,7 @@ class TelaProjeto:
 			if material_data:
 				material_data['lb_media'].config(text=f"dBFS medido do {material_name}: {avg:.2f} dBFS")
 				material_data['lb_atenuacao'].config(text=f"Atenuação: {attenuation:.2f} dB")
-				
+
 				if 'lb_current_dbfs' in material_data:
 					material_data['lb_current_dbfs'].config(text="Pronto")
 
@@ -451,7 +448,7 @@ class TelaProjeto:
 		current_material_frame= None
 		if is_widget_main and frame_reference is not None:
 			current_material_frame= frame_reference
-			
+
 			for widget in current_material_frame.winfo_children():
 				widget.destroy()
 
@@ -459,16 +456,16 @@ class TelaProjeto:
 			if not self.frame_list_material.winfo_ismapped():
 				self.frame_list_material.grid(row=4, columnspan=3, padx=5, pady=5, sticky="ew")
 			current_material_frame=tk.Frame(self.frame_list_material, bd=2, relief="groove", padx=10, pady=10)
-		
+
 		if material_name not in self.som.material_results:
 			self.som.material_results[material_name] = {'media': 0.0, 'atenuacao': 0.0}
-		
+
 		tk.Label(current_material_frame, text=f"Material: {material_name}", font=('Arial', 10, 'bold')).pack(pady=2)
 
 		btn_medir_text = "Medir"
 		if not is_widget_main:
 			btn_medir_text = "Refazer Medida"
-			
+
 		btn_medir = tk.Button(current_material_frame, text=btn_medir_text, command=lambda: self.start_measure_material(material_name, is_widget_main=is_widget_main))
 		btn_medir.pack()
 
@@ -477,17 +474,17 @@ class TelaProjeto:
 
 		lb_media_material = tk.Label(current_material_frame, text=f"dBFS medido do {material_name}: {self.som.material_results[material_name]['media']:.2f} dBFS")
 		lb_media_material.pack()
-		
+
 		lb_atenuacao_material = tk.Label(current_material_frame, text=f"Atenuação: {self.som.material_results[material_name]['atenuacao']:.2f} dB")
 		lb_atenuacao_material.pack()
-		
+
 		self.list_frame_material[material_name] = {
 			"frame": current_material_frame,
 			"lb_current_dbfs": lb_current_dbfs_material,
 			"lb_media": lb_media_material,
 			"lb_atenuacao": lb_atenuacao_material
 		}
-		
+
 		if not is_widget_main:
 			if self.count_material_column > 2:
 				self.count_material_column = 0
